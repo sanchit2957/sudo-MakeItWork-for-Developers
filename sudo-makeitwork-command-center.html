@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sudo MakeItWork — Disaster Response Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1A22;
+    --surface:#142530;
+    --surface-2:#1B2E3A;
+    --surface-3:#213747;
+    --border:#28404F;
+    --text:#EDE7DB;
+    --text-dim:#93A8B2;
+    --text-faint:#5D7581;
+    --accent-silt:#C9A567;
+    --accent-blue:#5FA1C4;
+    --risk-low:#4F9E82;
+    --risk-medium:#D9A441;
+    --risk-high:#E0722F;
+    --risk-critical:#C63A2E;
+    --font-display:'Oswald',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{ display:flex; min-height:100vh; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:220px;
+    flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:22px 16px;
+  }
+  .brand{ padding:0 6px 22px 6px; border-bottom:1px solid var(--border); margin-bottom:18px; }
+  .brand-mark{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+  }
+  .brand-mark .sudo-part{
+    font-family:var(--font-mono);
+    font-weight:500;
+    font-size:15px;
+    color:var(--text-faint);
+    letter-spacing:.5px;
+  }
+  .brand-mark .miw-part{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:.3px;
+    color:var(--text);
+  }
+  .brand-sub{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    margin-top:4px;
+  }
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:11px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    color:var(--text-dim);
+    font-size:13.5px;
+    font-weight:500;
+    border-left:2px solid transparent;
+    transition:background .15s, color .15s;
+  }
+  .nav-item svg{ width:16px; height:16px; flex-shrink:0; }
+  .nav-item:hover{ background:var(--surface-2); color:var(--text); }
+  .nav-item.active{
+    background:var(--surface-2);
+    color:var(--text);
+    border-left:2px solid var(--accent-blue);
+  }
+  .nav-count{
+    margin-left:auto;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    background:var(--surface-3);
+    color:var(--text-dim);
+    padding:1px 6px;
+    border-radius:10px;
+  }
+  .nav-count.crit{ background:rgba(198,58,46,.25); color:#F0938A; }
+
+  .sidebar-foot{
+    margin-top:auto;
+    padding:12px 6px 0 6px;
+    border-top:1px solid var(--border);
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-faint);
+    line-height:1.6;
+  }
+  .status-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--risk-low); margin-right:6px; }
+
+  /* ---------- MAIN ---------- */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  /* Ticker */
+  .ticker-bar{
+    display:flex; align-items:center;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--border);
+    height:36px;
+    overflow:hidden;
+    position:relative;
+  }
+  .ticker-label{
+    font-family:var(--font-mono);
+    font-size:10px;
+    letter-spacing:1px;
+    color:var(--text-faint);
+    background:var(--surface-2);
+    padding:0 14px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    border-right:1px solid var(--border);
+    flex-shrink:0;
+    z-index:2;
+  }
+  .ticker-track{
+    display:flex;
+    white-space:nowrap;
+    animation:scroll-left 34s linear infinite;
+  }
+  @keyframes scroll-left{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  .ticker-item{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--text-dim);
+    padding:0 22px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .ticker-item b{ color:var(--text); font-weight:500; }
+  .ticker-item .up{ color:var(--risk-critical); }
+  .ticker-item .down{ color:var(--risk-low); }
+  .clock{
+    margin-left:auto;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--text-dim);
+    padding:0 16px;
+    border-left:1px solid var(--border);
+    height:100%;
+    display:flex; align-items:center; gap:8px;
+    flex-shrink:0;
+    z-index:2;
+    background:var(--surface-2);
+  }
+
+  .content{ flex:1; padding:26px 30px 40px 30px; overflow-y:auto; }
+  .view{ display:none; }
+  .view.active{ display:block; animation:fade-in .25s ease; }
+  @keyframes fade-in{ from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:translateY(0);} }
+
+  .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; }
+  .view-title{ font-family:var(--font-display); font-size:24px; font-weight:600; letter-spacing:.3px; }
+  .view-desc{ color:var(--text-dim); font-size:13px; margin-top:4px; max-width:520px; }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--accent-silt); margin-bottom:6px;
+  }
+
+  /* Stat cards */
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:26px; }
+  .stat-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:16px 18px;
+  }
+  .stat-num{ font-family:var(--font-display); font-size:32px; font-weight:600; line-height:1; }
+  .stat-label{ font-size:12px; color:var(--text-dim); margin-top:8px; }
+  .stat-delta{ font-family:var(--font-mono); font-size:11px; margin-top:6px; }
+  .stat-delta.crit{ color:#F0938A; }
+  .stat-delta.ok{ color:var(--risk-low); }
+
+  /* Two-col layout */
+  .grid-2{ display:grid; grid-template-columns:1.3fr .9fr; gap:18px; align-items:start; }
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .panel-head{
+    padding:14px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel-head h3{ font-family:var(--font-display); font-size:15px; font-weight:600; letter-spacing:.3px; }
+  .panel-body{ padding:6px 0; }
+
+  /* district risk rows */
+  .risk-row{
+    display:flex; align-items:center; gap:12px;
+    padding:11px 18px;
+    border-bottom:1px solid var(--border);
+  }
+  .risk-row:last-child{ border-bottom:none; }
+  .risk-chip{
+    width:9px; height:9px; border-radius:50%; flex-shrink:0;
+  }
+  .risk-row .name{ font-weight:500; font-size:13.5px; width:110px; flex-shrink:0; }
+  .risk-row .pop{ font-family:var(--font-mono); font-size:11px; color:var(--text-faint); width:90px; flex-shrink:0; }
+  .risk-bar-track{ flex:1; height:6px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+  .risk-bar-fill{ height:100%; border-radius:4px; }
+  .risk-tag{
+    font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+    padding:3px 8px; border-radius:4px; flex-shrink:0; width:64px; text-align:center;
+  }
+
+  /* activity feed */
+  .feed-item{ padding:11px 18px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .feed-item:last-child{ border-bottom:none; }
+  .feed-time{ font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); display:block; margin-bottom:3px; }
+  .feed-text b{ color:var(--accent-silt); font-weight:600; }
+
+  /* SOS queue */
+  .sos-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:16px 18px; margin-bottom:12px;
+    display:flex; align-items:center; gap:18px;
+  }
+  .sos-urgency{
+    width:4px; align-self:stretch; border-radius:3px; flex-shrink:0;
+  }
+  .sos-main{ flex:1; min-width:0; }
+  .sos-top{ display:flex; align-items:center; gap:10px; margin-bottom:5px; flex-wrap:wrap; }
+  .sos-loc{ font-family:var(--font-display); font-size:16px; font-weight:600; }
+  .dedup-badge{
+    font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim);
+    background:var(--surface-3); padding:2px 7px; border-radius:4px;
+  }
+  .sos-meta{ font-size:12px; color:var(--text-dim); }
+  .sos-meta span{ font-family:var(--font-mono); color:var(--text-faint); }
+  .sos-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .btn{
+    font-family:var(--font-body); font-weight:600; font-size:12.5px;
+    padding:9px 16px; border-radius:6px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); cursor:pointer;
+    transition:background .15s, border-color .15s;
+  }
+  .btn:hover{ background:var(--surface-3); }
+  .btn.primary{ background:var(--accent-blue); border-color:var(--accent-blue); color:#0E1A22; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .verified-tag{
+    font-family:var(--font-mono); font-size:11px; color:var(--risk-low);
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+
+  /* Shelters */
+  .shelter-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .shelter-card{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 18px; }
+  .shelter-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .shelter-name{ font-family:var(--font-display); font-size:15.5px; font-weight:600; }
+  .shelter-loc{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .status-badge{
+    font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.4px;
+    padding:3px 7px; border-radius:4px; white-space:nowrap;
+  }
+  .cap-row{ margin-bottom:12px; }
+  .cap-label{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-dim); margin-bottom:5px; }
+  .cap-label b{ color:var(--text); font-family:var(--font-mono); font-weight:500; }
+  .cap-track{ height:7px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+  .cap-fill{ height:100%; border-radius:4px; }
+  .stock-row{ display:flex; gap:10px; margin-top:10px; }
+  .stock-pill{
+    flex:1; background:var(--surface-2); border-radius:6px; padding:8px 10px; text-align:center;
+  }
+  .stock-pill .v{ font-family:var(--font-mono); font-size:13px; font-weight:600; }
+  .stock-pill .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
+  .shelter-updated{ font-family:var(--font-mono); font-size:10px; color:var(--text-faint); margin-top:12px; }
+
+  /* Risk map view */
+  .river-panel{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:20px; }
+  .legend{ display:flex; gap:18px; margin-top:14px; flex-wrap:wrap; }
+  .legend-item{ display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-dim); }
+  .legend-dot{ width:9px; height:9px; border-radius:50%; }
+
+  .route-row{
+    display:flex; align-items:center; gap:14px;
+    padding:13px 18px; border-bottom:1px solid var(--border);
+  }
+  .route-row:last-child{ border-bottom:none; }
+  .route-icon{ width:30px; height:30px; border-radius:6px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .route-icon svg{ width:15px; height:15px; }
+  .route-text{ font-size:13px; flex:1; }
+  .route-text b{ font-weight:600; }
+  .route-detour{ font-family:var(--font-mono); font-size:11px; color:var(--accent-blue); }
+
+  @media (prefers-reduced-motion: reduce){
+    .ticker-track{ animation:none; }
+    .view.active{ animation:none; }
+  }
+
+  @media (max-width: 980px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .grid-2{ grid-template-columns:1fr; }
+    .shelter-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><span class="sudo-part">sudo</span><span class="miw-part">MakeItWork</span></div>
+      <div class="brand-sub">Disaster Response Intelligence · Assam</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" data-view="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+        Command Overview
+      </div>
+      <div class="nav-item" data-view="sos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.7 3.86a2 2 0 00-3.4 0z"/></svg>
+        SOS Queue
+        <span class="nav-count crit">7</span>
+      </div>
+      <div class="nav-item" data-view="shelters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+        Shelter Network
+        <span class="nav-count">12</span>
+      </div>
+      <div class="nav-item" data-view="risk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 7 6 10.5 6 14a6 6 0 0012 0c0-3.5-2-7-6-12z"/></svg>
+        Risk &amp; Routing
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="status-dot"></span>SYSTEM NOMINAL<br>
+      LAST SYNC 00:12 AGO<br>
+      NDRF LINK — ACTIVE
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TICKER -->
+    <div class="ticker-bar">
+      <div class="ticker-label">GAUGE&nbsp;FEED</div>
+      <div class="ticker-track" id="tickerTrack"></div>
+      <div class="clock"><span id="clockText">—</span></div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="view active" id="overview">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">Brahmaputra Basin · Live</div>
+            <div class="view-title">Command Overview</div>
+            <div class="view-desc">One verified view of stranded-citizen reports, shelter capacity, and district-level flood risk — built for the officer deciding where teams go next.</div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-num">7</div>
+            <div class="stat-label">Unverified SOS clusters</div>
+            <div class="stat-delta crit">▲ 3 since 06:00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">4,182</div>
+            <div class="stat-label">People sheltered tonight</div>
+            <div class="stat-delta ok">12 shelters accepting</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">3</div>
+            <div class="stat-label">Districts at Critical risk</div>
+            <div class="stat-delta crit">Majuli · Dhemaji · Barpeta</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">18</div>
+            <div class="stat-label">NDRF/SDRF teams deployed</div>
+            <div class="stat-delta ok">6 in transit</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h3>District risk snapshot</h3><span class="dedup-badge">24-HR FORECAST</span></div>
+            <div class="panel-body" id="districtList"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Activity feed</h3></div>
+            <div class="panel-body" id="feedList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOS QUEUE -->
+      <div class="view" id="sos">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">Human-in-the-loop triage</div>
+            <div class="view-title">SOS Queue</div>
+            <div class="view-desc">Reports within 150m and 10 minutes of each other are merged automatically. Nothing dispatches until an officer verifies the cluster.</div>
+          </div>
+        </div>
+        <div id="sosList"></div>
+      </div>
+
+      <!-- SHELTERS -->
+      <div class="view" id="shelters">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">Real-time capacity</div>
+            <div class="view-title">Shelter Network</div>
+            <div class="view-desc">Duty officers confirm bed, food, and medical stock on a timestamp. Cards older than 2 hours are flagged for a callback.</div>
+          </div>
+        </div>
+        <div class="shelter-grid" id="shelterList"></div>
+      </div>
+
+      <!-- RISK & ROUTING -->
+      <div class="view" id="risk">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">IMD rainfall · CWC gauge data</div>
+            <div class="view-title">Risk &amp; Routing</div>
+            <div class="view-desc">The river drives everything downstream of it. Zones are classified against gauge trend, not just current level.</div>
+          </div>
+        </div>
+
+        <div class="river-panel">
+          <svg viewBox="0 0 900 260" width="100%" height="260" id="riverSvg"></svg>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--risk-low)"></span>Low</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--risk-medium)"></span>Medium</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--risk-high)"></span>High</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--risk-critical)"></span>Critical</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Blocked segments &amp; detours</h3><span class="dedup-badge">NETWORKX · OSMNX</span></div>
+          <div class="panel-body" id="routeList"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+const districts = [
+  { name:'Majuli',   pop:'168K exposed', level:'critical', pct:92 },
+  { name:'Dhemaji',  pop:'240K exposed', level:'critical', pct:88 },
+  { name:'Barpeta',  pop:'610K exposed', level:'critical', pct:81 },
+  { name:'Guwahati', pop:'1.1M exposed', level:'high',     pct:64 },
+  { name:'Silchar',  pop:'420K exposed', level:'medium',   pct:41 },
+  { name:'Dibrugarh',pop:'310K exposed', level:'medium',   pct:37 },
+  { name:'Jorhat',   pop:'190K exposed', level:'low',      pct:18 },
+];
+const riskColor = { low:'var(--risk-low)', medium:'var(--risk-medium)', high:'var(--risk-high)', critical:'var(--risk-critical)' };
+const riskColorHex = { low:'#4F9E82', medium:'#D9A441', high:'#E0722F', critical:'#C63A2E' };
+
+const feed = [
+  { t:'00:04', html:'Cluster verified at <b>Majuli Ghat, Zone 3</b> — 14 reports merged, team dispatched.' },
+  { t:'00:19', html:'<b>Kacharigaon relief camp</b> reported full capacity — routing new arrivals to Barpeta Town camp.' },
+  { t:'00:41', html:'Gauge at <b>Neamatighat</b> crossed danger mark, +0.3m in the last hour.' },
+  { t:'01:10', html:'Road NH-715 near <b>Dhemaji</b> flagged submerged — routing engine recalculated 3 evacuation paths.' },
+  { t:'01:52', html:'New SMS short-code report from <b>Silchar, Cachar</b> — awaiting cluster match.' },
+];
+
+const sosData = [
+  { loc:'Majuli Ghat, Zone 3', reports:14, urgency:'critical', time:'4 min ago', note:'Char island, water rising, elderly residents', verified:true },
+  { loc:'Dhemaji — Sissiborgaon', reports:9, urgency:'critical', time:'11 min ago', note:'Family stranded on rooftop, no boat access', verified:false },
+  { loc:'Barpeta — Sarthebari', reports:6, urgency:'high', time:'18 min ago', note:'Livestock and 3 households isolated', verified:false },
+  { loc:'Guwahati — Anil Nagar', reports:3, urgency:'high', time:'26 min ago', note:'Urban flash flood, ground floor submerged', verified:false },
+  { loc:'Silchar — Tarapur', reports:5, urgency:'medium', time:'34 min ago', note:'Water entering homes, no injuries reported', verified:false },
+  { loc:'Dibrugarh — Chabua', reports:2, urgency:'medium', time:'47 min ago', note:'Road access cut, supplies requested', verified:false },
+  { loc:'Jorhat — Titabor', reports:1, urgency:'low', time:'1 hr ago', note:'Precautionary report, no immediate danger', verified:false },
+];
+
+const shelters = [
+  { name:'Barpeta Town Camp', loc:'Barpeta District HQ', occ:842, cap:900, food:'3 days', med:'Stocked', status:'Near Capacity', color:'var(--risk-high)', updated:'8 min ago' },
+  { name:'Guwahati Sports Complex', loc:'Sarusajai, Guwahati', occ:310, cap:1200, food:'6 days', med:'Stocked', status:'Accepting', color:'var(--risk-low)', updated:'3 min ago' },
+  { name:'Majuli Higher Sec. School', loc:'Kamalabari, Majuli', occ:498, cap:500, food:'1 day', med:'Low', status:'Full', color:'var(--risk-critical)', updated:'22 min ago' },
+  { name:'Silchar Community Hall', loc:'Tarapur, Silchar', occ:180, cap:600, food:'5 days', med:'Stocked', status:'Accepting', color:'var(--risk-low)', updated:'11 min ago' },
+  { name:'Dhemaji Relief Centre', loc:'Dhemaji Town', occ:670, cap:750, food:'2 days', med:'Stocked', status:'Near Capacity', color:'var(--risk-high)', updated:'47 min ago' },
+  { name:'Jorhat Municipal Hall', loc:'Jorhat Town', occ:95, cap:400, food:'6 days', med:'Stocked', status:'Accepting', color:'var(--risk-low)', updated:'2 hr ago' },
+];
+
+const routes = [
+  { road:'NH-715, near Dhemaji', status:'Submerged — 1.2m depth reported', detour:'Reroute via Silapathar road, +18 min', icon:'block' },
+  { road:'Majuli ferry crossing', status:'Suspended — current exceeds safe threshold', detour:'Boat dispatch only, coordinate with NDRF marine unit', icon:'wave' },
+  { road:'SH-27, Barpeta–Sarthebari link', status:'Partially blocked — one lane passable', detour:'Escort convoys only, 15 km/h advisory', icon:'block' },
+  { road:'Guwahati, GS Road underpass', status:'Waterlogged, pumping in progress', detour:'Use Zoo Road bypass', icon:'wave' },
+];
+
+/* ---------------- RENDER: TICKER ---------------- */
+const gauges = [
+  { s:'NEAMATIGHAT', v:'+1.4m above danger', dir:'up' },
+  { s:'GUWAHATI',    v:'+0.6m above danger', dir:'up' },
+  { s:'DHUBRI',      v:'−0.2m below danger', dir:'down' },
+  { s:'DIBRUGARH',   v:'+0.9m above danger', dir:'up' },
+  { s:'SILCHAR (BARAK)', v:'+0.3m above danger', dir:'up' },
+  { s:'JORHAT',      v:'−0.5m below danger', dir:'down' },
+];
+function buildTicker(){
+  const track = document.getElementById('tickerTrack');
+  const set = gauges.map(g => `<div class="ticker-item">${g.s} <b>${g.v}</b> <span class="${g.dir}">${g.dir==='up'?'▲':'▼'}</span></div>`).join('');
+  track.innerHTML = set + set; // duplicate for seamless loop
+}
+buildTicker();
+
+/* ---------------- RENDER: CLOCK ---------------- */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockText').textContent =
+    now.toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) + '  ' +
+    now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }) + ' IST';
+}
+tickClock(); setInterval(tickClock, 1000);
+
+/* ---------------- RENDER: DISTRICTS ---------------- */
+function buildDistricts(){
+  const el = document.getElementById('districtList');
+  el.innerHTML = districts.map(d => `
+    <div class="risk-row">
+      <span class="risk-chip" style="background:${riskColor[d.level]}"></span>
+      <span class="name">${d.name}</span>
+      <span class="pop">${d.pop}</span>
+      <span class="risk-bar-track"><span class="risk-bar-fill" style="width:${d.pct}%; background:${riskColor[d.level]}"></span></span>
+      <span class="risk-tag" style="color:${riskColor[d.level]}; background:${riskColor[d.level]}22">${d.level}</span>
+    </div>`).join('');
+}
+buildDistricts();
+
+/* ---------------- RENDER: FEED ---------------- */
+function buildFeed(){
+  document.getElementById('feedList').innerHTML = feed.map(f => `
+    <div class="feed-item"><span class="feed-time">${f.t} IST</span><span class="feed-text">${f.html}</span></div>
+  `).join('');
+}
+buildFeed();
+
+/* ---------------- RENDER: SOS QUEUE ---------------- */
+function buildSOS(){
+  const el = document.getElementById('sosList');
+  el.innerHTML = sosData.map((s, i) => `
+    <div class="sos-card">
+      <div class="sos-urgency" style="background:${riskColor[s.urgency]}"></div>
+      <div class="sos-main">
+        <div class="sos-top">
+          <span class="sos-loc">${s.loc}</span>
+          <span class="dedup-badge">${s.reports} reports merged</span>
+          <span class="risk-tag" style="color:${riskColor[s.urgency]}; background:${riskColor[s.urgency]}22">${s.urgency}</span>
+        </div>
+        <div class="sos-meta">${s.note} · <span>${s.time}</span></div>
+      </div>
+      <div class="sos-actions" id="sos-actions-${i}">
+        ${s.verified
+          ? `<span class="verified-tag">✓ Verified — team dispatched</span>`
+          : `<button class="btn" onclick="dismissSOS(${i})">Dismiss</button><button class="btn primary" onclick="verifySOS(${i})">Verify &amp; dispatch</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+function verifySOS(i){
+  document.getElementById(`sos-actions-${i}`).innerHTML = `<span class="verified-tag">✓ Verified — team dispatched</span>`;
+}
+function dismissSOS(i){
+  document.getElementById(`sos-actions-${i}`).innerHTML = `<span class="verified-tag" style="color:var(--text-faint)">Dismissed — marked duplicate</span>`;
+}
+buildSOS();
+
+/* ---------------- RENDER: SHELTERS ---------------- */
+function buildShelters(){
+  const el = document.getElementById('shelterList');
+  el.innerHTML = shelters.map(s => {
+    const pct = Math.round((s.occ/s.cap)*100);
+    return `
+    <div class="shelter-card">
+      <div class="shelter-top">
+        <div>
+          <div class="shelter-name">${s.name}</div>
+          <div class="shelter-loc">${s.loc}</div>
+        </div>
+        <span class="status-badge" style="color:${s.color}; background:${s.color}22">${s.status}</span>
+      </div>
+      <div class="cap-row">
+        <div class="cap-label"><span>Occupancy</span><b>${s.occ} / ${s.cap}</b></div>
+        <div class="cap-track"><div class="cap-fill" style="width:${pct}%; background:${s.color}"></div></div>
+      </div>
+      <div class="stock-row">
+        <div class="stock-pill"><div class="v">${s.food}</div><div class="l">Food stock</div></div>
+        <div class="stock-pill"><div class="v">${s.med}</div><div class="l">Medical</div></div>
+      </div>
+      <div class="shelter-updated">Confirmed ${s.updated}</div>
+    </div>`;
+  }).join('');
+}
+buildShelters();
+
+/* ---------------- RENDER: RIVER RISK MAP ---------------- */
+function buildRiver(){
+  const svg = document.getElementById('riverSvg');
+  const zones = [
+    { name:'Dhemaji',   x:120, y:70,  level:'critical' },
+    { name:'Majuli',    x:270, y:150, level:'critical' },
+    { name:'Jorhat',    x:400, y:90,  level:'low' },
+    { name:'Dibrugarh', x:60,  y:170, level:'medium' },
+    { name:'Guwahati',  x:600, y:170, level:'high' },
+    { name:'Barpeta',   x:730, y:100, level:'critical' },
+    { name:'Silchar',   x:830, y:200, level:'medium' },
+  ];
+  // river path (stylised Brahmaputra course, left to right)
+  const riverPath = `M0,140 C120,190 200,90 280,130 S460,180 560,140 S740,80 900,150`;
+  let svgHTML = `
+    <path d="${riverPath}" stroke="#2E5A72" stroke-width="22" fill="none" stroke-linecap="round" opacity="0.55"/>
+    <path d="${riverPath}" stroke="#4C8FB0" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.85"/>
+  `;
+  zones.forEach(z => {
+    const c = riskColorHex[z.level];
+    const pulse = z.level === 'critical' ? `<circle cx="${z.x}" cy="${z.y}" r="16" fill="${c}" opacity="0.35"><animate attributeName="r" values="12;20;12" dur="2.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.05;0.4" dur="2.6s" repeatCount="indefinite"/></circle>` : '';
+    svgHTML += `
+      ${pulse}
+      <circle cx="${z.x}" cy="${z.y}" r="8" fill="${c}" stroke="#0E1A22" stroke-width="2"/>
+      <text x="${z.x}" y="${z.y - 16}" text-anchor="middle" font-family="Oswald, sans-serif" font-size="13" font-weight="600" fill="#EDE7DB">${z.name}</text>
+    `;
+  });
+  svg.innerHTML = svgHTML;
+}
+buildRiver();
+
+/* ---------------- RENDER: ROUTES ---------------- */
+function buildRoutes(){
+  const icons = {
+    block: `<svg viewBox="0 0 24 24" fill="none" stroke="#E0722F" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    wave:  `<svg viewBox="0 0 24 24" fill="none" stroke="#5FA1C4" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>`,
+  };
+  document.getElementById('routeList').innerHTML = routes.map(r => `
+    <div class="route-row">
+      <div class="route-icon">${icons[r.icon]}</div>
+      <div class="route-text"><b>${r.road}</b><br><span style="color:var(--text-dim)">${r.status}</span></div>
+      <div class="route-detour">${r.detour}</div>
+    </div>
+  `).join('');
+}
+buildRoutes();
+
+/* ---------------- NAV SWITCHING ---------------- */
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(item.dataset.view).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
